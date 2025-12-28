@@ -13,21 +13,21 @@ servers=(
   "NUIMS360 BI Bridge|20.50.195.204"
 )
 
-for entry in "${servers[@]}"; do
-  IFS='|' read -r name ip <<< "$entry"
-  echo "Checking $name ($ip)"
+LOGFILE="server_status.log"
+TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
 
-  if ping -c 2 -W 3 "$ip" >/dev/null 2>&1; then
-    echo "  RESULT: ONLINE (ping)"
+echo "===== $TIMESTAMP =====" >> "$LOGFILE"
+
+for SERVER in "${servers[@]}"; do
+  NAME=$(echo "$SERVER" | cut -d'|' -f1)
+  IP=$(echo "$SERVER" | cut -d'|' -f2)
+
+  if curl -I --connect-timeout 5 -s "http://$IP" > /dev/null; then
+    echo "$NAME ($IP) : ONLINE" >> "$LOGFILE"
   else
-    echo "  ping blocked or failed – trying TCP 22"
-    if nc -z -w 3 "$ip" 22 >/dev/null 2>&1; then
-      echo "  RESULT: ONLINE (TCP 22)"
-    else
-      echo "  RESULT: OFFLINE or BLOCKED"
-    fi
+    echo "$NAME ($IP) : OFFLINE" >> "$LOGFILE"
   fi
-
-  echo "--------------------------------"
 done
 
+echo "" >> "$LOGFILE"
+echo "Server status check completed. Log saved to $LOGFILE."
